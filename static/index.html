@@ -8,54 +8,73 @@
     <meta name="license" content="
         Copyright 2013 Google, Abram Hindle
         
-        Licensed under the Apache License, Version 2.0 (the "License");
+        Licensed under the Apache License, Version 2.0 (the 'License');
         you may not use this file except in compliance with the License.
         You may obtain a copy of the License at
         
             http://www.apache.org/licenses/LICENSE-2.0
         
         Unless required by applicable law or agreed to in writing, software
-        distributed under the License is distributed on an "AS IS" BASIS,
+        distributed under the License is distributed on an 'AS IS' BASIS,
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
     "/>
-    <script src="json2.js"></script>
+    <script src="static/json2.js"></script>
   </head> 
   <body bgcolor="white" height="100%" width="100%"> 
-    <div id="debug"></div>
-    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
+    <button onclick="clearCanvas()">Clear Canvas</button>
+    <span id="debug"></span>
+    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas>
 
     <script>
       // Fix me
-var canvas = document.getElementById('c');
-var host = window.location.host;
-var context = canvas.getContext("2d");
-var W = canvas.width  = window.innerWidth-6;
-var H = canvas.height = window.innerHeight-50;
-var wscounter = 0;
-var socket;
+let canvas = document.getElementById('c');
+let host = window.location.host;
+let context = canvas.getContext("2d");
+let W = canvas.width  = window.innerWidth-6;
+let H = canvas.height = window.innerHeight-50;
+let wscounter = 0;
+let socket;
+let hue = 0;
+let world = {};
+
+window.onload = function () {
+    fetch("http://" + window.location.host + "/world", {method: "GET"})
+        .then( res => { return res.json(); } )
+        .then( data => world = data )
+        .then( _ => setInterval( renderFrame, 1000/30.0) )
+        .then( _ => console.log(world) );
+
+}
+
+function clearCanvas() {
+    fetch("http://" + window.location.host + "/clear", {method: "POST"})
+        .then( res => console.log(res) );
+}
+
 
 function debug(str) {
-    var debugDiv = document.getElementById('debug');
+    let debugDiv = document.getElementById('debug');
     debugDiv.innerHTML = "" + str;
 }
 debug("Test");
 
-world = {};
 
-//XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
-    with(context) {
-        beginPath();                
-        lineWidth = 3;
-        var x = entity["x"];
-        var y = entity["y"];
-        //moveTo(x,y);
+    with (context) {
+        let radius = (entity["radius"])?entity["radius"]:50;
+        beginPath();
+        lineWidth = 2;
+        let x = entity["x"];
+        let y = entity["y"];
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
-        stroke();                                
+        while (radius > 0) {
+            arc(x, y, radius, 0, 2.0 * Math.PI, false);
+            radius -= Math.floor(Math.random() * 10);
+        }
+        stroke();
     }
 }
 
@@ -81,13 +100,13 @@ function clearFrame() {
 // This actually draws the frame
 function renderFrame() {
     clearFrame();
-    for (var key in world) {
-        var entity = world[key];
+    for (let key in world) {
+        let entity = world[key];
         drawCircle(context,prepEntity(entity));
     }
 }
 
-var drawNext = true;
+let drawNext = true;
 // Signals that there's something to be drawn
 function drawNextFrame() {
     drawNext = true;
@@ -104,19 +123,18 @@ function drawFrame() {
 
 // This is unpleasent, canvas clicks are not handled well
 // So use this code, it works well on multitouch devices as well.
-
 function getPosition(e) {
 	if ( e.targetTouches && e.targetTouches.length > 0) {
-		var touch = e.targetTouches[0];
-		var x = touch.pageX  - canvas.offsetLeft;
-		var y = touch.pageY  - canvas.offsetTop;
+		let touch = e.targetTouches[0];
+		let x = touch.pageX  - canvas.offsetLeft;
+		let y = touch.pageY  - canvas.offsetTop;
 		return [x,y];
 	} else {
-		var rect = e.target.getBoundingClientRect();
-		var x = e.offsetX || e.pageX - rect.left - window.scrollX;
-		var y = e.offsetY || e.pageY - rect.top  - window.scrollY;
-		var x = e.pageX  - canvas.offsetLeft;
-		var y = e.pageY  - canvas.offsetTop;
+		let rect = e.target.getBoundingClientRect();
+		let x = e.offsetX || e.pageX - rect.left - window.scrollX;
+		let y = e.offsetY || e.pageY - rect.top  - window.scrollY;
+		x = e.pageX  - canvas.offsetLeft;
+		y = e.pageY  - canvas.offsetTop;
 		return [x,y];
 	}
 }
@@ -124,12 +142,10 @@ function getPosition(e) {
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
 }
-var counter = 0;
+let counter = 0;
 function addEntityWithoutName(data) {
-    var name = "X"+(counter++)%100;
-    addEntity(name,data);
+    socket.send(JSON.stringify(data));
 }
 
 // canvas + mouse/touch is complicated 
@@ -139,7 +155,7 @@ mouse = (function() {
     // Now this isn't the most popular way of doing OO in 
     // Javascript, but it relies on lexical scope and I like it
     // This isn't 301 so I'm not totally bound to OO :)
-    var self;    
+    let self;
     self = {
         clicked: 0,
         // these are listener lists append to them
@@ -153,9 +169,9 @@ mouse = (function() {
             }
         },
         wasClicked: function(e) {
-            var pos = getPosition(e);
-            var x = pos[0];
-            var y = pos[1];
+            let pos = getPosition(e);
+            let x = pos[0];
+            let y = pos[1];
             if (x >= 0 && x <= W && y >= 0 && y <= H) {
                 return 1;
             } else {
@@ -165,9 +181,9 @@ mouse = (function() {
         mousedown: function(e) {
             e.preventDefault();
             if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
+                let pos = getPosition(e);
+                let x = pos[0];
+                let y = pos[1];
 	        self.clicked = 1;
                 self.callListeners(self.mousedowners,x,y,self.clicked,e);
                 //addEntityWithoutName({'x':x,'y':y,'colour':'red'});
@@ -177,9 +193,9 @@ mouse = (function() {
             e.preventDefault();
             //alert(getPosition(e));
             if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
+                let pos = getPosition(e);
+                let x = pos[0];
+                let y = pos[1];
 	        //self.poppin(x,y);
 	        self.clicked = 0;
                 self.selected = -1;
@@ -192,15 +208,15 @@ mouse = (function() {
             return self.mousedown(e);
         },
 	touchend: function(e) {
-            var touch = (self.lasttouch)?self.lasttouch:e;
+            let touch = (self.lasttouch)?self.lasttouch:e;
             return self.mouseup(touch);
 	},
 	mousemove: function(e) {
             e.preventDefault();
             if (self.wasClicked(e)) {
-                var pos = getPosition(e);
-                var x = pos[0];
-                var y = pos[1];
+                let pos = getPosition(e);
+                let x = pos[0];
+                let y = pos[1];
 	        if (self.clicked != 0) {
 	            //self.squeakin(x,y);
                     self.callListeners(self.mousedraggers,x,y,self.clicked,e);
@@ -229,20 +245,17 @@ mouse = (function() {
 })();
 
 // Add the application specific mouse listeners!
-//XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':"hsl(" + (Math.floor(Math.random() * 360)) + ",100%,50%)"});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':"hsl(" + (Math.floor(Math.random() * 360)) + ",100%,50%)"});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':"hsl(" + ((hue++)%361) + ",100%,50%)", 'radius':10});
 });
-
 
 function update() {
     drawFrame();
@@ -250,10 +263,9 @@ function update() {
 
 
 function wsSetup() {
-    var url = "ws://"+host+"/subscribe";   
+    let url = "ws://"+host+"/subscribe";
     socket = new WebSocket(url);
-    socket.onopen = function() {
-        //XXX: TODO What are you going to do here?
+    socket.onopen = async function() {
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -261,7 +273,14 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            if (msg.data === "clear") {
+                world = {};
+            } else {
+                let data = JSON.parse(msg.data);
+                for (let key in data) {
+                    addEntity(key, data[key]);
+                }
+            }
         } catch (e) {
             alert("socket on message: " + e);
         }
