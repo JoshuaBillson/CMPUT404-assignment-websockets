@@ -40,22 +40,22 @@
 
 ** Requirements
 
-   - [ ] Implement the Websockets Javascript parts in the HTML file static/index.htm
-   - [ ] Implement the Websockets send/recv part of the webservice
-   - [ ] Upon update all the clients should recv a websocket update message
-   - [ ] Use JSON to communicate (no plain text!)
+   - [x] Implement the Websockets Javascript parts in the HTML file static/index.htm
+   - [x] Implement the Websockets send/recv part of the webservice
+   - [x] Upon update all the clients should recv a websocket update message
+   - [x] Use JSON to communicate (no plain text!)
    - [ ] The webservice can pass all the tests in freetests.py
-   - [ ] The webservice can pass all the tests in not-free-tests.py (you only have part of this one, I reserve the right to add tests)
-   - [ ] The webservice can serve /static/index.html
-   - [ ] static/index.html displays the current state of the webservice
-   - [ ] static/index.html responds to clicks within 100ms on average
-   - [ ] Make static/index.html images look nice
+   - [x] The webservice can pass all the tests in not-free-tests.py (you only have part of this one, I reserve the right to add tests)
+   - [x] The webservice can serve /static/index.html
+   - [x] static/index.html displays the current state of the webservice
+   - [x] static/index.html responds to clicks within 100ms on average
+   - [x] Make static/index.html images look nice
 
  
 ** Restrictions
-   - [ ] Use Python 3.6
-   - [ ] Must run in the 404 VM (Ubuntu 18.10)
-   - [ ] License your code properly (use an OSI approved license)
+   - [x] Use Python 3.6
+   - [x] Must run in the 404 VM (Ubuntu 18.10)
+   - [x] License your code properly (use an OSI approved license)
      - Put your name on it!
 
 ** Submission Instructions
