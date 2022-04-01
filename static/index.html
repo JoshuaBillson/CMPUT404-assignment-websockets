@@ -273,11 +273,12 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            if (msg.data === "clear") {
-                world = {};
-            } else {
-                let data = JSON.parse(msg.data);
-                for (let key in data) {
+            let data = JSON.parse(msg.data);
+            console.log(data);
+            for (let key in data) {
+                if (key === "clear" && data[key]) {
+                    world = {};
+                } else {
                     addEntity(key, data[key]);
                 }
             }

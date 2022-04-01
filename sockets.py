@@ -84,7 +84,7 @@ class Client:
 
     def clear(self):
         self.counter = 0
-        self.queue.put_nowait("clear")
+        self.queue.put_nowait({"clear": True})
 
     def put(self, entity, data):
         d = dict()
@@ -130,10 +130,7 @@ def subscribe_socket(ws):
     try:
         while True:
             msg = client.get()
-            if msg == "clear":
-                ws.send(msg)
-            else:
-                ws.send(json.dumps(msg))
+            ws.send(json.dumps(msg))
     except Exception as e:  # WebSocketError as e:
         print("WS Error %s" % e)
     finally:
